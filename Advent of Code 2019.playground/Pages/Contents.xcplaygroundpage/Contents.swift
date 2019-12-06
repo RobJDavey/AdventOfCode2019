@@ -7,5 +7,6 @@
  3. [Day 3: Crossed Wires](Day%203)
  4. [Day 4: Secure Container](Day%204)
  5. [Day 5: Sunny with a Chance of Asteroids](Day%205)
+ 6. [Day 6: Universal Orbit Map](Day%206)
  
 */
