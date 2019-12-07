@@ -1,29 +1,60 @@
 import Foundation
 
-public struct IntcodeComputer {
+public class IntcodeComputer {
     public private(set) var instructions: Array<Int>
-    public private(set) var output = 0
+    public private(set) var inputs: [Int]
+    public private(set) var outputs: [Int] = []
+    public private(set) var isHalted: Bool = false
+    public var previous: IntcodeComputer?
+    public var next: IntcodeComputer?
     private var instructionPointer: Array<Int>.Index
     
-    public init(instructions: Array<Int>) {
+    public init(instructions: Array<Int>, inputs: [Int] = []) {
         self.instructions = instructions
         self.instructionPointer = self.instructions.startIndex
+        self.inputs = inputs
     }
     
-    public mutating func run(input: Int = 0) -> Int {
+    public func add(input: Int) {
+        self.inputs.append(input)
+    }
+    
+    public func add(inputs: [Int]) {
+        self.inputs.append(contentsOf: inputs)
+    }
+    
+    func readOutput() -> Int {
+        return self.outputs.removeFirst()
+    }
+    
+    public func run() {
+        guard !isHalted else {
+            return
+        }
+        
+        if let previous = previous {
+            inputs.append(contentsOf: previous.outputs)
+            previous.outputs = []
+        }
+        
         while true {
             let instruction = read()
             let (opcode, m1, m2, m3) = Self.parse(instruction: instruction)
             
             switch opcode {
             case .add:
-                write(mode1: m1, mode2: m2, mode3: m3) { $0 + $1 }
+                write(mode1: m1, mode2: m2, mode3: m3, +)
             case .multiply:
-                write(mode1: m1, mode2: m2, mode3: m3) { $0 * $1 }
+                write(mode1: m1, mode2: m2, mode3: m3, *)
             case .input:
-                write(mode1: m1) { input }
+                if inputs.isEmpty {
+                    instructionPointer -= 1
+                    return
+                }
+                
+                self.write(mode1: m1) { self.inputs.removeFirst() }
             case .output:
-                output = read(mode1: m1)
+                outputs.append(read(mode1: m1))
             case .jumpIfTrue:
                 jump(mode1: m1, mode2: m2) { $0 != 0 }
             case .jumpIfFalse:
@@ -33,7 +64,8 @@ public struct IntcodeComputer {
             case .equals:
                 write(mode1: m1, mode2: m2, mode3: m3) { $0 == $1 ? 1 : 0 }
             case .halt:
-                return output
+                isHalted = true
+                return
             }
         }
     }
@@ -48,7 +80,7 @@ public struct IntcodeComputer {
             }
         }
         
-        mutating set {
+        set {
             switch mode {
             case .position:
                 instructions[value] = newValue
@@ -74,23 +106,23 @@ public struct IntcodeComputer {
         return (opcode, mode1, mode2, mode3)
     }
 
-    private mutating func read() -> Int {
+    private func read() -> Int {
         defer { instructionPointer = instructions.index(after: instructionPointer) }
         return instructions[instructionPointer]
     }
     
-    private mutating func read(mode1: ParameterMode) -> Int {
+    private func read(mode1: ParameterMode) -> Int {
         let p1 = read()
         return self[p1, mode1]
     }
     
-    private mutating func write(mode1: ParameterMode, _ callback: () -> Int) {
+    private func write(mode1: ParameterMode, _ callback: () -> Int) {
         let p1 = read()
         let result = callback()
         self[p1, mode1] = result
     }
 
-    private mutating func write(mode1: ParameterMode, mode2: ParameterMode, mode3: ParameterMode, _ callback: (Int, Int) -> Int) {
+    private func write(mode1: ParameterMode, mode2: ParameterMode, mode3: ParameterMode, _ callback: (Int, Int) -> Int) {
         let p1 = read()
         let p2 = read()
         let p3 = read()
@@ -100,7 +132,7 @@ public struct IntcodeComputer {
         self[p3, mode3] = result
     }
 
-    private mutating func jump(mode1: ParameterMode, mode2: ParameterMode, _ predicate: (Int) -> Bool) {
+    private func jump(mode1: ParameterMode, mode2: ParameterMode, _ predicate: (Int) -> Bool) {
         let p1 = read()
         let p2 = read()
         let value = self[p1, mode1]

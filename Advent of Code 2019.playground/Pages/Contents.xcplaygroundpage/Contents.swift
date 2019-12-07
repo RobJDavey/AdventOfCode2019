@@ -8,5 +8,6 @@
  4. [Day 4: Secure Container](Day%204)
  5. [Day 5: Sunny with a Chance of Asteroids](Day%205)
  6. [Day 6: Universal Orbit Map](Day%206)
+ 7. [Day 7: Amplification Circuit](Day%207)
  
 */
